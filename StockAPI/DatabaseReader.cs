@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.Data.Sqlite;
+using NUnit.Framework;
 
 namespace StockAPI
 {
@@ -31,7 +32,6 @@ namespace StockAPI
                             double width = reader.GetDouble(1);
                             double height = reader.GetDouble(2);
                             double depth = reader.GetDouble(3);
-                            double weight = reader.GetDouble(4);
 
                             List<Box> boxes = GetBoxesForPallet(connection, palletId);
 
@@ -41,7 +41,6 @@ namespace StockAPI
                                 Width = width,
                                 Height = height,
                                 Depth = depth,
-                                Weight = weight,
                                 Boxes = boxes
                             };
                             pallets.Add(pallet);
@@ -51,6 +50,40 @@ namespace StockAPI
             }
 
             return pallets;
+        }
+
+        public Pallet ReadPallet(SqliteConnection connection, int palletId)
+        {
+            string query = "SELECT * FROM Pallets WHERE ID = @PalletId;";
+            using (var command = new SqliteCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@PalletId", palletId);
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        int id = reader.GetInt32(0);
+                        double width = reader.GetDouble(1);
+                        double height = reader.GetDouble(2);
+                        double depth = reader.GetDouble(3);
+
+                        List<Box> boxes = GetBoxesForPallet(connection, palletId);
+
+                        return new Pallet
+                        {
+                            ID = palletId,
+                            Width = width,
+                            Height = height,
+                            Depth = depth,
+                            Boxes = boxes
+                        };
+                    }
+                    else
+                    {
+                        throw new Exception("Палета с указанным идентификатором не найдена.");
+                    }
+                }
+            }
         }
 
         private List<Box> GetBoxesForPallet(SqliteConnection connection, int palletId)
@@ -130,57 +163,5 @@ namespace StockAPI
 
             return boxes;
         }
-
-        public int InsertPallet(int width, int height, int depth, int weight)
-        {
-            using (SqliteConnection connection = new SqliteConnection($"Data Source={databaseFilePath}"))
-            {
-                connection.Open();
-                string query = "INSERT INTO Pallets (Width, Height, Depth, Weight) VALUES (@Width, @Height, @Depth, @Weight); SELECT last_insert_rowid();";
-
-                using (var command = new SqliteCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@Width", width);
-                    command.Parameters.AddWithValue("@Height", height);
-                    command.Parameters.AddWithValue("@Depth", depth);
-                    command.Parameters.AddWithValue("@Weight", weight);
-
-                    int palletId = Convert.ToInt32(command.ExecuteScalar());
-                    return palletId;
-                }
-            }
-        }   
-
-        public void InsertBox(int palletId, int width, int height, int depth, int weight, DateTime? productionDate = null)
-        {
-            using (SqliteConnection connection = new SqliteConnection($"Data Source={databaseFilePath}"))
-            {
-                connection.Open();
-                string query = "INSERT INTO Boxes (Width, Height, Depth, Weight, ProductionDate) VALUES (@Width, @Height, @Depth, @Weight, @ProductionDate); SELECT last_insert_rowid();";
-
-                using (var command = new SqliteCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@Width", width);
-                    command.Parameters.AddWithValue("@Height", height);
-                    command.Parameters.AddWithValue("@Depth", depth);
-                    command.Parameters.AddWithValue("@Weight", weight);
-                    command.Parameters.AddWithValue("@ProductionDate", productionDate);
-
-                    int boxId = Convert.ToInt32(command.ExecuteScalar());
-
-                    string palletBoxesQuery = "INSERT INTO PalletBoxes (PalletId, BoxId) VALUES (@PalletId, @BoxId);";
-
-                    using (var palletBoxesCommand = new SqliteCommand(palletBoxesQuery, connection))
-                    {
-                        palletBoxesCommand.Parameters.AddWithValue("@PalletId", palletId);
-                        palletBoxesCommand.Parameters.AddWithValue("@BoxId", boxId);
-
-                        palletBoxesCommand.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
     }
-
 }
-

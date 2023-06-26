@@ -8,8 +8,19 @@ namespace StockAPI
         public double Width { get; set; }
         public double Height { get; set; }
         public double Depth { get; set; }
-        public double Weight { get; set; }
         public List<Box> Boxes { get; set; } = new List<Box>();
+
+        public double GetWeight()
+        {
+            double weight = 30.0;
+
+            foreach (Box box in Boxes)
+            {
+                weight += box.Weight;
+            }
+
+            return weight;
+        }
 
         public DateTime GetExpirationDate()
         {
@@ -40,7 +51,7 @@ namespace StockAPI
                 "Ширина: " + Width + "\n" +
                 "Высота: " + Height + "\n" +
                 "Глубина: " + Depth + "\n" +
-                "Вес: " + Weight + "\n" +
+                "Вес: " + GetWeight() + "\n" +
                 "Годна до: " + GetExpirationDate() + "\n" +
                 "Объем: " + GetVolume() + "\n";
         }
